@@ -1,4 +1,6 @@
 ﻿using RestSharp;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace Sync
@@ -10,7 +12,7 @@ namespace Sync
     {
         private readonly RestClient _restClient;
 
-        public VirtuousService(IConfiguration configuration) 
+        public VirtuousService(IConfiguration configuration)
         {
             var apiBaseUrl = configuration.GetValue("VirtuousApiBaseUrl");
             var apiKey = configuration.GetValue("VirtuousApiKey");
@@ -23,8 +25,9 @@ namespace Sync
             _restClient = new RestClient(options);
         }
 
-        public async Task<PagedResult<AbbreviatedContact>> GetContactsAsync(int skip, int take)
+        public async Task<List<AbbreviatedContact>> GetContactsAsync(int skip, int take, string stateFilter="")
         {
+            List<AbbreviatedContact> resultContact = new List<AbbreviatedContact>();
             var request = new RestRequest("/api/Contact/Query", Method.Post);
             request.AddQueryParameter("Skip", skip);
             request.AddQueryParameter("Take", take);
@@ -34,7 +37,11 @@ namespace Sync
             request.AddJsonBody(body);
 
             var response = await _restClient.PostAsync<PagedResult<AbbreviatedContact>>(request);
-            return response;
+
+            resultContact = response.List.Where(x => !string.IsNullOrWhiteSpace(x.Address) 
+                                                && x.Address.Contains(stateFilter)).ToList();
+
+            return resultContact;
         }
     }
 }
