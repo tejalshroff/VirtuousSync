@@ -28,11 +28,12 @@ namespace Sync
             var request = new RestRequest("/api/Contact/Query", Method.Post);
             request.AddQueryParameter("Skip", skip);
             request.AddQueryParameter("Take", take);
+            request.AddHeader("Accept", "application/json");
 
             var body = new ContactQueryRequest();
             request.AddJsonBody(body);
 
-            var response = await _restClient.GetAsync<PagedResult<AbbreviatedContact>>(request);
+            var response = await _restClient.PostAsync<PagedResult<AbbreviatedContact>>(request);
             return response;
         }
     }
