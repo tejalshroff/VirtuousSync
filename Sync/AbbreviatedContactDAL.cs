@@ -5,6 +5,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Reflection;
 
 namespace Sync
 {
@@ -14,22 +15,20 @@ namespace Sync
         void BulkUpdateAbbreviatedContactAsync(List<AbbreviatedContact> abbreviatedContacts);
     }
 
-    public class AbbreviatedContactDAL
+    public class AbbreviatedContactDAL : IAbbreviatedContactDAL
     {
-        public string connectionString;
-        private readonly IConfiguration _iconfiguration;
-        public AbbreviatedContactDAL(IConfiguration iconfiguration)
+        private readonly string _connectionString;
+        public AbbreviatedContactDAL(string connectionString)
         {
-            _iconfiguration = iconfiguration;
-            connectionString = _iconfiguration.GetValue("ConnectionString");
+            _connectionString = connectionString;
         }
 
         public void BulkUpdateAbbreviatedContactAsync(List<AbbreviatedContact> abbreviatedContacts)
         {
             try
             {
-                DataTable dtAbbreviatedContact = _iconfiguration.ListToDataTable(abbreviatedContacts);
-                using (SqlBulkCopy sqlbc = new SqlBulkCopy(connectionString))
+                DataTable dtAbbreviatedContact = ListToDataTable(abbreviatedContacts);
+                using (SqlBulkCopy sqlbc = new SqlBulkCopy(_connectionString))
                 {
                     sqlbc.DestinationTableName = "dbo.AbbreviatedContact";
                     sqlbc.ColumnMappings.Add("Id", "Id");
@@ -59,12 +58,32 @@ namespace Sync
                     '{abbreviatedcontacts.ContactType}', '{abbreviatedcontacts.ContactName}', 
                     '{abbreviatedcontacts.Address}', '{abbreviatedcontacts.Email}', '{abbreviatedcontacts.Phone}')"));
 
-            using (var connection = new SqlConnection(connectionString))
+            using (var connection = new SqlConnection(_connectionString))
             {
                 var command = new SqlCommand(cmdText.ToString(), connection);
                 connection.Open();
                 command.ExecuteNonQuery();
             }
+        }
+
+        private DataTable ListToDataTable<T>(List<T> list)
+        {
+            DataTable dt = new DataTable();
+
+            foreach (PropertyInfo info in typeof(T).GetProperties())
+            {
+                dt.Columns.Add(new DataColumn(info.Name, Nullable.GetUnderlyingType(info.PropertyType) ?? info.PropertyType));
+            }
+            foreach (T t in list)
+            {
+                DataRow row = dt.NewRow();
+                foreach (PropertyInfo info in typeof(T).GetProperties())
+                {
+                    row[info.Name] = info.GetValue(t, null) ?? DBNull.Value;
+                }
+                dt.Rows.Add(row);
+            }
+            return dt;
         }
     }
 }

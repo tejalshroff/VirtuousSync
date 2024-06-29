@@ -1,25 +1,28 @@
 ﻿using RestSharp;
+using Sync.ConfigurationOptions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
 namespace Sync
 {
+    public interface IVirtuousService
+    {
+        Task<List<AbbreviatedContact>> GetContactsAsync(int skip, int take, string stateFilter = "");
+    }
+
     /// <summary>
     /// API Docs found at https://docs.virtuoussoftware.com/
     /// </summary>
-    internal class VirtuousService
+    internal class VirtuousService : IVirtuousService
     {
         private readonly RestClient _restClient;
 
-        public VirtuousService(IConfiguration configuration)
+        public VirtuousService(AuthorizationOption authorizationOption)
         {
-            var apiBaseUrl = configuration.GetValue("VirtuousApiBaseUrl");
-            var apiKey = configuration.GetValue("VirtuousApiKey");
-
-            var options = new RestClientOptions(apiBaseUrl)
+            var options = new RestClientOptions(authorizationOption.VirtuousApiBaseUrl)
             {
-                Authenticator = new RestSharp.Authenticators.OAuth2.OAuth2AuthorizationRequestHeaderAuthenticator(apiKey)
+                Authenticator = new RestSharp.Authenticators.OAuth2.OAuth2AuthorizationRequestHeaderAuthenticator(authorizationOption.VirtuousApiKey)
             };
 
             _restClient = new RestClient(options);

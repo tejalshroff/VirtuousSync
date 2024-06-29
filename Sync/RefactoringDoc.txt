@@ -1,0 +1,8 @@
+Refactoring
+1. Added interface to all services used. When changing the codeset to use dependency injection would be simple to resgiter the services.
+2. Moving all the configuations to appsettings, easy to manage and maintain
+
+Note
+1. Added the Contact Id that I recived from get response, this gives conflicting the primary key issue. 
+	- As it was writing the id in csv so I just followed the same. 
+	  Can we changed by not adding Id and auto genetaring it when inserting [will have duplicate records in such case]

@@ -1,4 +1,6 @@
 ﻿using CsvHelper;
+using Microsoft.Extensions.Configuration;
+using Sync.ConfigurationOptions;
 using System;
 using System.Globalization;
 using System.IO;
@@ -9,18 +11,25 @@ namespace Sync
 {
     internal class Program
     {
+        private static IConfiguration _iconfig;
         static void Main(string[] args)
         {
+            var builder = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false);
+
+            _iconfig = builder.Build();
+            
             Sync().GetAwaiter().GetResult();
         }
 
         private static async Task Sync()
         {
-            var apiKey = "v_eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJodHRwOi8vc2NoZW1hcy54bWxzb2FwLm9yZy93cy8yMDA1LzA1L2lkZW50aXR5L2NsYWltcy9uYW1lIjoiN2VhYTBhNTQtYTBiZC00OTNlLWFjNDMtZjNjZGEwZmVlNWQ5IiwiZXhwIjoyMTQ3NDgzNjQ3LCJpc3MiOiJodHRwczovL2FwcC52aXJ0dW91c3NvZnR3YXJlLmNvbSIsImF1ZCI6Imh0dHBzOi8vYXBpLnZpcnR1b3Vzc29mdHdhcmUuY29tIn0.oN0bfmYMS7lPxGtVH3ouEVhD0Kuzoqa2nAnuvPTyPpk";
-            var configuration = new Configuration(apiKey);
-            var virtuousService = new VirtuousService(configuration);
-            var contactDAL = new AbbreviatedContactDAL(configuration);
-
+            var ConnectionString = _iconfig.GetSection("ConnectionStrings").Get<ConnectionStrings>();
+            var AuthorizationOption = _iconfig.GetSection("AuthorizationOption").Get<AuthorizationOption>();
+            IVirtuousService _virtuousService = new VirtuousService(AuthorizationOption); ;
+            IAbbreviatedContactDAL _contactDAL = new AbbreviatedContactDAL(ConnectionString.Default);
+            
             var skip = 0;
             var take = 100;
             var maxContacts = 1000;
@@ -29,17 +38,20 @@ namespace Sync
 
             try
             {
+                Console.WriteLine("Fetching Contact records!");
                 do
                 {
-                    var contacts = await virtuousService.GetContactsAsync(skip, take, stateFilter:stateFilter);
+                    var contacts = await _virtuousService.GetContactsAsync(skip, take, stateFilter:stateFilter);
                     skip += take;
                     if (contacts.Any())
                     {
-                        contactDAL.UpdateAbbreviatedContactAsync(contacts);
+                        Console.WriteLine($"Updating {contacts.Count} Conacts");
+                        _contactDAL.UpdateAbbreviatedContactAsync(contacts);
                     }
                     hasMore = skip > maxContacts;
                 }
                 while (!hasMore);
+                Console.WriteLine("Completed Fetching Contact records!");
             }
             catch (Exception ex)
             {
