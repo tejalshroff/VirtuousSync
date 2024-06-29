@@ -22,8 +22,8 @@ namespace Sync
             var contactDAL = new AbbreviatedContactDAL(configuration);
 
             var skip = 0;
-            var take = 10;
-            var maxContacts = 100;
+            var take = 100;
+            var maxContacts = 1000;
             var hasMore = true;
             string stateFilter = "AZ";
 
